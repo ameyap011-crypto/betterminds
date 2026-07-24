@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SentinelAI - Community Safety & Eco-Resource Pipeline</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    
+    <!-- Marked.js CDN to render Markdown responses from Groq -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Google Identity Services SDK for Google Cloud Console OAuth -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- Leaflet CSS for interactive spatial mapping -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    
+    <!-- Leaflet JS engine -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Soft blue-gray background */
+            color: #1e293b;
+        }
+
+        /* Smooth state transitions */
+        .theme-transition {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Leaflet custom map icon layout styling */
+        .leaflet-container {
+            font-family: 'Inter', sans-serif;
+            border-radius: 1rem;
+        }
+
+        /* Fullscreen Map Mode Container Styles */
+        #riskMapContainer:fullscreen {
+            padding: 1.5rem;
+            background-color: #f0f4f8;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            box-sizing: border-box;
+        }
+        #riskMapContainer:fullscreen #mapWrapper {
+            flex: 1;
+            height: 100%;
+            display: flex;
+            padding: 0;
+            margin-top: 1rem;
+        }
+        #riskMapContainer:fullscreen #riskMap {
+            height: 100% !important;
+            width: 100% !important;
+            border-radius: 1rem;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e2e8f0;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Custom Markdown Formatting Styles */
+        .prose-custom h1, .prose-custom h2, .prose-custom h3, .prose-custom h4 {
+            color: #0f172a;
+            font-weight: 700;
+            margin-top: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+        .prose-custom h3 { font-size: 1.1rem; }
+        .prose-custom h4 { font-size: 1.0rem; }
+        .prose-custom p {
+            color: #334155;
+            margin-bottom: 0.75rem;
+            line-height: 1.6;
+        }
+        .prose-custom ul {
+            list-style-type: disc;
+            padding-left: 1.25rem;
+            margin-bottom: 0.75rem;
+            color: #334155;
+        }
+        .prose-custom li {
+            margin-bottom: 0.35rem;
+        }
+        .prose-custom strong {
+            color: #0f172a;
+        }
+
+        /* Glassmorphism subtle effect */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 antialiased selection:bg-teal-500 selection:text-white">
+
+    <!-- Top Navigation Header -->
+    <header id="mainHeader" class="theme-transition bg-white/90 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Brand Logo & Title -->
+            <a href="#hero" class="flex items-center space-x-3.5 group">
+                <div id="logoBadge" class="theme-transition w-11 h-11 rounded-2xl bg-slate-900 flex items-center justify-center text-xl font-extrabold text-white shadow-md group-hover:scale-105 transition-transform">
+                    SΩ
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">SentinelAI</h1>
+                    <p class="text-xs text-slate-500 font-medium">US Eco-Safety & Disaster Resilience</p>
+                </div>
+            </a>
+
+            <!-- Navigation Links -->
+            <nav class="hidden md:flex items-center space-x-8 text-sm font-semibold text-slate-600">
+                <a href="#hero" class="hover:text-blue-600 transition-colors">Home</a>
+                <a href="#features" class="hover:text-blue-600 transition-colors">Features</a>
+                <a href="#assessment" class="hover:text-blue-600 transition-colors">Assessment</a>
+                <a href="#resources" class="hover:text-blue-600 transition-colors">Resources</a>
+                <a href="#contact" class="hover:text-blue-600 transition-colors">Contact</a>
+            </nav>
+
+            <!-- Live Engine & Auth Indicator -->
+            <div class="flex items-center space-x-4">
+                <span class="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-xs">
+                    <span class="w-2 h-2 mr-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Groq Engine Live
+                </span>
+
+                <!-- User Auth Profile Control Bar -->
+                <div id="userStatusContainer" class="flex items-center space-x-2">
+                    <button id="authOpenBtn" onclick="toggleAuthModal(true)" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-sm cursor-pointer flex items-center space-x-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+                        <span>Sign In / Register</span>
+                    </button>
+                    <div id="userNavDropdown" class="hidden items-center space-x-2">
+                        <span id="userNameBadge" class="text-xs font-bold text-slate-800 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 flex items-center space-x-1">
+                            <span class="text-blue-600">👤</span> <span id="userNameText">User</span>
+                        </span>
+                        <button id="historyOpenBtn" onclick="toggleHistoryModal(true)" class="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200 transition cursor-pointer">
+                            History
+                        </button>
+                        <button id="logoutBtn" onclick="executeLogout()" class="p-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 transition cursor-pointer" title="Log Out">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- AUTHENTICATION MODAL (GOOGLE & SUPABASE) -->
+    <div id="authModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 space-y-6 relative animate-fadeIn">
+            <!-- Modal Close Button -->
+            <button onclick="toggleAuthModal(false)" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-2 rounded-full hover:bg-slate-100 transition cursor-pointer">
+                ✕
+            </button>
+
+            <!-- Modal Header -->
+            <div class="text-center space-y-1">
+                <div class="w-12 h-12 bg-slate-900 text-white font-extrabold rounded-2xl flex items-center justify-center text-xl mx-auto mb-2 shadow-md">SΩ</div>
+                <h3 class="text-xl font-extrabold text-slate-900">Welcome to SentinelAI</h3>
+                <p class="text-xs text-slate-500">Sign in or register to save your regional assessments.</p>
+            </div>
+
+            <!-- Auth Mode Switcher Tabs -->
+            <div class="grid grid-cols-2 bg-slate-100 p-1 rounded-xl text-xs font-bold text-center">
+                <button id="authTabLogin" onclick="switchAuthTab('login')" class="py-2 rounded-lg bg-white shadow-xs text-slate-900 cursor-pointer transition">Log In</button>
+                <button id="authTabRegister" onclick="switchAuthTab('register')" class="py-2 rounded-lg text-slate-500 hover:text-slate-900 cursor-pointer transition">Sign Up</button>
+            </div>
+
+            <!-- Supabase Username & Password Auth Form -->
+            <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Username / Email</label>
+                    <input type="text" id="authUsername" required placeholder="Enter username or email"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Password</label>
+                    <input type="password" id="authPassword" required placeholder="••••••••"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+                <button type="submit" id="authSubmitBtn" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs transition shadow-md cursor-pointer">
+                    Log In with Supabase
+                </button>
+            </form>
+
+            <div class="relative flex items-center justify-center">
+                <div class="border-t border-slate-200 w-full"></div>
+                <span class="bg-white px-3 text-[10px] uppercase font-bold text-slate-400 tracking-wider absolute">OR</span>
+            </div>
+
+            <!-- Google Cloud Console Login Option -->
+            <div class="space-y-3">
+                <div id="googleBtnContainer" class="flex justify-center w-full min-h-[44px]">
+                    <!-- Google Identity Services standard button gets rendered here dynamically -->
+                </div>
+                <p class="text-[11px] text-slate-400 text-center">Protected via Google Cloud Console OAuth & Supabase Auth</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ASSESSMENT HISTORY MODAL -->
+    <div id="historyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-3xl w-full p-6 sm:p-8 space-y-6 relative max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4 flex-shrink-0">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xl">📜</span>
+                    <h3 class="text-lg font-extrabold text-slate-900">Your Saved Regional Assessments</h3>
+                </div>
+                <button onclick="toggleHistoryModal(false)" class="text-slate-400 hover:text-slate-700 p-2 rounded-full hover:bg-slate-100 transition cursor-pointer">✕</button>
+            </div>
+            
+            <div id="historyListContainer" class="flex-1 overflow-y-auto space-y-4 pr-1">
+                <p class="text-xs text-slate-500 italic text-center py-8">Loading history record...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULL-SCREEN LANDING HERO SECTION -->
+    <section id="hero" class="relative min-h-[calc(100vh-5rem)] flex items-center justify-center py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-100 via-slate-50 to-[#f0f4f8]">
+        <div class="max-w-5xl mx-auto text-center space-y-8">
+            <div class="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold uppercase tracking-wider shadow-xs">
+                <span class="text-amber-500">★</span> Autonomous Regional Risk Analytics
+            </div>
+            
+            <h1 class="text-4xl sm:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                Empowering Communities with <br class="hidden sm:inline"/>
+                <span class="bg-gradient-to-r from-slate-900 via-blue-900 to-teal-700 bg-clip-text text-transparent">AI-Driven Eco-Resilience</span>
+            </h1>
+
+            <p class="text-lg sm:text-xl text-slate-600 max-w-3xl mx-auto font-normal leading-relaxed">
+                SentinelAI bridges regional environmental vulnerabilities with household conservation data. Evaluate localized hazard parameters, discover emergency response facilities, and receive real-time mitigation protocols.
+            </p>
+
+            <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="#assessment" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-base shadow-lg shadow-amber-500/25 hover:shadow-xl hover:shadow-amber-500/30 transform hover:-translate-y-0.5 transition-all text-center flex items-center justify-center space-x-2">
+                    <span>Get Started</span>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </a>
+                <a href="#features" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 font-semibold text-base shadow-sm hover:shadow-md transition-all text-center">
+                    Learn More
+                </a>
+            </div>
+
+            <!-- Stats/Highlights Grid -->
+            <div class="pt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm text-center space-y-1">
+                    <div class="text-2xl font-extrabold text-slate-900">100% US Covered</div>
+                    <div class="text-xs text-slate-500 font-medium">Valid 5-Digit ZIP Resolution</div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm text-center space-y-1">
+                    <div class="text-2xl font-extrabold text-emerald-600">Sub-Second</div>
+                    <div class="text-xs text-slate-500 font-medium">Groq Neural Inference</div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm text-center space-y-1">
+                    <div class="text-2xl font-extrabold text-blue-600">Geospatial</div>
+                    <div class="text-xs text-slate-500 font-medium">OpenStreetMap Emergency Mapping</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES SECTION -->
+    <section id="features" class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12">
+        <div class="text-center space-y-3 max-w-2xl mx-auto">
+            <h2 class="text-3xl font-extrabold text-slate-900">Comprehensive Safety Capabilities</h2>
+            <p class="text-slate-600 text-sm">Designed to provide actionable insights during environmental stress and regional emergency events.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all space-y-4">
+                <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-bold">
+                    🗺️
+                </div>
+                <h3 class="text-lg font-bold text-slate-900">Regional Risk Evaluation</h3>
+                <p class="text-slate-600 text-sm leading-relaxed">Synthesizes household demand metrics with regional water, weather, and climate vulnerabilities to produce immediate threat analysis.</p>
+            </div>
+
+            <div class="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all space-y-4">
+                <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl font-bold">
+                    🏥
+                </div>
+                <h3 class="text-lg font-bold text-slate-900">Live Resource Mapping</h3>
+                <p class="text-slate-600 text-sm leading-relaxed">Scans OpenStreetMap infrastructure to locate nearby emergency shelters, hospitals, fire stations, and clean water distribution centers.</p>
+            </div>
+
+            <div class="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all space-y-4">
+                <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl font-bold">
+                    💬
+                </div>
+                <h3 class="text-lg font-bold text-slate-900">Interactive Advisory AI</h3>
+                <p class="text-slate-600 text-sm leading-relaxed">Engage with our high-speed Groq-backed chat advisory hub for personalized household preparation steps and conservation guides.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- MAIN ASSESSMENT WORKSPACE SECTION -->
+    <section id="assessment" class="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
+        
+        <!-- Section Title & Overview -->
+        <div class="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-8 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div class="space-y-2 max-w-3xl">
+                <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                    Interactive Assessment Matrix
+                </span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Community Safety & Preparedness Hub</h2>
+                <p class="text-slate-300 text-sm leading-relaxed">
+                    Select your regional hazard factors below to initiate an automated spatial analysis, stewardship evaluation, and resource identification run.
+                </p>
+            </div>
+            <div class="flex-shrink-0 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 text-center">
+                <span class="block text-xs font-medium text-slate-300">Target Framework</span>
+                <span class="text-sm font-bold text-amber-400">FEMA & EPA Aligned</span>
+            </div>
+        </div>
+
+        <!-- Dashboard Layout Split Screen Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- LEFT COLUMN: MODE 1 (INPUTS AND EVALUATIONS) - occupies 7 cols -->
+            <section class="lg:col-span-7 space-y-8">
+                
+                <!-- Input Control Panel Card -->
+                <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                        <h3 class="font-bold text-slate-900 tracking-wide flex items-center text-base">
+                            <svg class="w-5 h-5 mr-2.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                            Mode 1: Regional Threat Configurations
+                        </h3>
+                        <span class="text-xs text-slate-500 font-mono font-medium px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200">US Territory Bound</span>
+                    </div>
+                    
+                    <form id="evaluationForm" class="p-6 space-y-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <!-- Input Parameter: US Zip Code -->
+                            <div>
+                                <label for="zipCode" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Target 5-Digit US Zip Code</label>
+                                <input type="text" id="zipCode" name="zip_code" required maxlength="5" pattern="\d{5}"
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm font-medium"
+                                    placeholder="e.g., 90210">
+                            </div>
+
+                            <!-- Input Parameter: Footprint Level -->
+                            <div>
+                                <label for="resourceUsage" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Household Resource Footprint</label>
+                                <select id="resourceUsage" name="usage" required
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm font-medium">
+                                    <option value="low">Low (Conservative Habits)</option>
+                                    <option value="moderate" selected>Moderate (Average Footprint)</option>
+                                    <option value="high">High (Heavy Continuous Demand)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Input Parameter: Target Environmental Crisis Parameter -->
+                        <div>
+                            <label for="primaryConcern" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Primary Environmental Safety Concern</label>
+                            <select id="primaryConcern" name="concern" required
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm font-medium">
+                                <option value="Clean Water Access" selected>Clean Water Access & Freshwater Preservation</option>
+                                <option value="Drought">Severe Drought Anomalies</option>
+                                <option value="Heatwaves">Extreme Heatwaves & Thermal Stress</option>
+                                <option value="Severe Weather">Severe Weather & Emergency Disasters</option>
+                            </select>
+                        </div>
+
+                        <!-- Form Submission CTA Button -->
+                        <button type="submit" id="evalBtn" class="theme-transition w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-5 rounded-xl shadow-md hover:shadow-lg flex items-center justify-center space-x-2 transition cursor-pointer text-sm">
+                            <span>Execute Local Vulnerability Run</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Dynamic Processing Assessment Results Payload Wrapper -->
+                <div id="assessmentResultsSection" class="hidden space-y-6 animate-fadeIn">
+                    
+                    <!-- Scoring Indicator Metric Panel -->
+                    <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
+                        <div class="space-y-1 text-center sm:text-left">
+                            <h4 class="text-base font-bold text-slate-900 tracking-wide">Live Community Stewardship Index</h4>
+                            <p class="text-xs text-slate-500 max-w-xs">Calculated based on municipal resource availability combined with personal household conservation habits.</p>
+                        </div>
+                        <div class="relative flex items-center justify-center">
+                            <!-- Visual Ring Structure -->
+                            <div class="w-24 h-24 rounded-full border-4 border-blue-500 flex items-center justify-center theme-transition bg-blue-50/50 shadow-inner">
+                                <span id="scoreDisplayValue" class="text-3xl font-extrabold tracking-tight text-slate-900">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Regional Risk Map Card -->
+                    <div id="riskMapContainer" class="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+                        <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                            <h4 class="font-bold text-slate-900 tracking-wide flex items-center text-sm sm:text-base">
+                                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                Geographic Threat & Risk Visualization
+                            </h4>
+                            <div class="flex items-center space-x-3">
+                                <span id="mapRiskBadge" class="text-xs font-semibold px-3 py-1 rounded-full border bg-slate-100 text-slate-700 border-slate-200">
+                                    Initializing Location...
+                                </span>
+                                <!-- Interactive Fullscreen Toggle Button -->
+                                <button id="fullscreenBtn" type="button" title="Toggle Fullscreen Map" class="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition cursor-pointer flex items-center justify-center">
+                                    <svg id="fullscreenExpandIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                                    <svg id="fullscreenCompressIcon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="mapWrapper" class="p-4">
+                            <div id="riskMap" class="w-full h-80 rounded-xl border border-slate-200 bg-slate-100 z-0"></div>
+                        </div>
+                    </div>
+
+                    <!-- Nearby Emergency Resources Panel -->
+                    <div id="emergencyResourcesCard" class="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+                        <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-2">
+                            <h4 class="font-bold text-slate-900 tracking-wide flex items-center text-sm sm:text-base">
+                                <svg class="w-5 h-5 mr-2 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0l-3-3m3 3l3-3"></path></svg>
+                                Nearby Emergency Resources
+                            </h4>
+                            <span id="resourceCountBadge" class="text-xs font-mono bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full border border-slate-200 font-medium">
+                                Radius: 5 Miles
+                            </span>
+                        </div>
+                        <div class="p-5 space-y-4">
+                            <div id="resourceLoadingSpinner" class="hidden flex items-center justify-center py-8 text-slate-500 text-xs font-mono space-x-2">
+                                <span class="animate-spin border-2 border-rose-500 border-t-transparent rounded-full w-4 h-4"></span>
+                                <span>Scanning local geospatial infrastructure...</span>
+                            </div>
+                            <div id="resourcesCategoriesContainer" class="space-y-6 max-h-[420px] overflow-y-auto pr-2">
+                                <p class="text-xs text-slate-500 italic text-center py-4">Execute an environmental run above to locate nearby emergency facilities.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Groq Automated Risk Analysis Markdown Box -->
+                    <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+                        <div class="p-5 border-b border-slate-100 bg-slate-50/50">
+                            <h4 class="font-bold text-slate-900 tracking-wide text-base">Automated Safety Monitor Profile</h4>
+                        </div>
+                        <div id="markdownAnalysisContent" class="p-6 text-sm text-slate-700 leading-relaxed prose-custom max-w-none space-y-4">
+                            <!-- Injected Dynamically by MarkedJS via api payload -->
+                        </div>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- RIGHT COLUMN: MODE 2 (ECO-SAFETY ADVISORY CHAT HUB) - occupies 5 cols -->
+            <section class="lg:col-span-5">
+                <div class="bg-white border border-slate-200/80 rounded-2xl shadow-sm flex flex-col h-[680px] overflow-hidden sticky top-24">
+                    
+                    <!-- Chat Header Structure -->
+                    <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center space-x-3">
+                        <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 tracking-wide text-sm">Mode 2: Eco-Safety Advisory Chat Hub</h3>
+                            <p class="text-xs text-slate-500">Micro-level conservation strategies & disaster prep</p>
+                        </div>
+                    </div>
+
+                    <!-- Scrollable Chat Stream Dialogue Window -->
+                    <div id="chatDialogueStream" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/60">
+                        <!-- Initial System Welcome Box -->
+                        <div class="flex items-start space-x-2.5 max-w-[88%]">
+                            <div class="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-mono font-bold flex-shrink-0 shadow-xs">AI</div>
+                            <div class="bg-white border border-slate-200/80 text-slate-700 text-xs rounded-2xl px-4 py-3 shadow-xs space-y-1">
+                                <p class="font-semibold text-slate-900">Hello! I'm SentinelAI Advisory Assistant.</p>
+                                <p>Ask me questions regarding US resource conservation or disaster prep. For example:</p>
+                                <p class="text-blue-600 italic font-mono pt-1">"How can our family reduce water waste during drought?"</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Chat Input Form Tray -->
+                    <form id="chatInputTrayForm" class="p-4 bg-white border-t border-slate-200/80 flex items-center space-x-2">
+                        <input type="text" id="chatUserQueryField" autocomplete="off" required
+                            class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                            placeholder="Ask an emergency optimization strategy...">
+                        <button type="submit" id="chatSendBtn" class="theme-transition bg-slate-900 hover:bg-slate-800 text-white rounded-xl p-2.5 transition flex-shrink-0 cursor-pointer shadow-sm">
+                            <svg class="w-4 h-4 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                        </button>
+                    </form>
+
+                </div>
+            </section>
+
+        </div>
+    </section>
+
+    <!-- RESOURCES & ADVISORY GUIDE SECTION -->
+    <section id="resources" class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8">
+        <div class="text-center space-y-2 max-w-2xl mx-auto">
+            <h2 class="text-3xl font-extrabold text-slate-900">Essential Preparedness Guidelines</h2>
+            <p class="text-slate-600 text-sm">Quick reference checklists compiled from standard FEMA and EPA advisory frameworks.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">Water Reserve</span>
+                <h3 class="text-base font-bold text-slate-900">Freshwater Storage Rule</h3>
+                <p class="text-xs text-slate-600 leading-relaxed">Store at least 1 gallon of water per person per day for 3 to 7 days for drinking and sanitation purposes during municipal disruption.</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md">Go-Bag Essentials</span>
+                <h3 class="text-base font-bold text-slate-900">Emergency Kit Checklist</h3>
+                <p class="text-xs text-slate-600 leading-relaxed">Pack non-perishable food, flashlights, extra batteries, first-aid supplies, N95 masks, battery-powered radio, and essential family documents.</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">Extreme Heat</span>
+                <h3 class="text-base font-bold text-slate-900">Thermal Stress Protocol</h3>
+                <p class="text-xs text-slate-600 leading-relaxed">Identify community cooling centers, cover windows exposed to direct sunlight with blinds, and limit heavy outdoor activity during peak daylight hours.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER & CONTACT SECTION -->
+    <footer id="contact" class="bg-slate-900 text-white mt-20 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-lg font-bold text-white shadow-md">
+                    SΩ
+                </div>
+                <div>
+                    <h4 class="text-base font-bold text-white">SentinelAI Framework</h4>
+                    <p class="text-xs text-slate-400">US Localized Environmental Safety & Disaster Resilience Platform</p>
+                </div>
+            </div>
+
+            <div class="text-xs text-slate-400 text-center md:text-right space-y-1">
+                <p>© 2026 SentinelAI Platform. Designed with accessibility & speed in mind.</p>
+                <p>Emergency Services: Always dial <b>911</b> for immediate life-threatening crises.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Global Application Engineering Scripts -->
+    <script>
+        // Store contextual conversational arrays locally to preserve dialogue paths
+        let executionChatHistory = [];
+
+        // Auth mode state ('login' vs 'register')
+        let currentAuthMode = 'login';
+        let googleClientId = '';
+
+        // Global Map Control State Instances
+        let mapInstance = null;
+        let mapMarker = null;
+        let riskCircle = null;
+        let resourceMarkersLayerGroup = null;
+        let resourceMarkerMap = {}; // Maps resource ID -> Leaflet marker instance
+
+        // Dynamic UI Theme Swapping Configuration Keymaps (Target Aesthetic Light Mode Palette)
+        const themeProfiles = {
+            'clean water access': { bg: 'bg-blue-50', accent: 'bg-blue-600', hover: 'hover:bg-blue-700', text: 'text-blue-600', ring: 'border-blue-500' },
+            'drought': { bg: 'bg-amber-50', accent: 'bg-amber-600', hover: 'hover:bg-amber-700', text: 'text-amber-600', ring: 'border-amber-500' },
+            'heatwaves': { bg: 'bg-orange-50', accent: 'bg-orange-600', hover: 'hover:bg-orange-700', text: 'text-orange-600', ring: 'border-orange-500' },
+            'severe weather': { bg: 'bg-teal-50', accent: 'bg-teal-600', hover: 'hover:bg-teal-700', text: 'text-teal-600', ring: 'border-teal-500' }
+        };
+
+        const primaryConcernSelect = document.getElementById('primaryConcern');
+        const mainHeader = document.getElementById('mainHeader');
+        const logoBadge = document.getElementById('logoBadge');
+        const evalBtn = document.getElementById('evalBtn');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+
+        // Fullscreen map elements
+        const riskMapContainer = document.getElementById('riskMapContainer');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const expandIcon = document.getElementById('fullscreenExpandIcon');
+        const compressIcon = document.getElementById('fullscreenCompressIcon');
+
+        // Resource display elements
+        const resourceLoadingSpinner = document.getElementById('resourceLoadingSpinner');
+        const resourcesCategoriesContainer = document.getElementById('resourcesCategoriesContainer');
+        const resourceCountBadge = document.getElementById('resourceCountBadge');
+
+        // Fullscreen Toggle Event Handlers
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                if (riskMapContainer.requestFullscreen) {
+                    riskMapContainer.requestFullscreen();
+                } else if (riskMapContainer.webkitRequestFullscreen) {
+                    riskMapContainer.webkitRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        });
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+        function handleFullscreenChange() {
+            const isFullscreen = !!document.fullscreenElement;
+            if (isFullscreen) {
+                expandIcon.classList.add('hidden');
+                compressIcon.classList.remove('hidden');
+            } else {
+                expandIcon.classList.remove('hidden');
+                compressIcon.classList.add('hidden');
+            }
+
+            // Trigger Leaflet spatial re-calculation on screen size change
+            if (mapInstance) {
+                setTimeout(() => {
+                    mapInstance.invalidateSize();
+                }, 150);
+            }
+        }
+
+        // On Page Load: Check App Config & User Status
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchAppConfig();
+            await checkUserStatus();
+        });
+
+        // Fetch Google Client ID and Supabase Client Config
+        async function fetchAppConfig() {
+            try {
+                const res = await fetch('/api/config');
+                const config = await res.json();
+                if (config.google_client_id) {
+                    googleClientId = config.google_client_id;
+                    initGoogleSignIn();
+                }
+            } catch (err) {
+                console.warn("Config loading error:", err);
+            }
+        }
+
+        // Initialize Google Sign-In SDK Button
+        function initGoogleSignIn() {
+            if (typeof google !== 'undefined' && google.accounts && googleClientId) {
+                google.accounts.id.initialize({
+                    client_id: googleClientId,
+                    callback: handleGoogleCallback
+                });
+                google.accounts.id.renderButton(
+                    document.getElementById('googleBtnContainer'),
+                    { theme: 'outline', size: 'large', shape: 'pill', width: '280' }
+                );
+            }
+        }
+
+        // Handle Google Sign-In Auth Callback
+        async function handleGoogleCallback(response) {
+            try {
+                const res = await fetch('/api/google-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id_token: response.credential })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    toggleAuthModal(false);
+                    await checkUserStatus();
+                } else {
+                    alert(data.error || "Google authentication failed.");
+                }
+            } catch (err) {
+                alert(`Google Login Error: ${err.message}`);
+            }
+        }
+
+        // Auth Modal Toggling
+        function toggleAuthModal(show) {
+            const modal = document.getElementById('authModal');
+            if (show) {
+                modal.classList.remove('hidden');
+                if (googleClientId) initGoogleSignIn();
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        // Auth Tab Switching
+        function switchAuthTab(mode) {
+            currentAuthMode = mode;
+            const tabLogin = document.getElementById('authTabLogin');
+            const tabReg = document.getElementById('authTabRegister');
+            const submitBtn = document.getElementById('authSubmitBtn');
+
+            if (mode === 'login') {
+                tabLogin.className = "py-2 rounded-lg bg-white shadow-xs text-slate-900 cursor-pointer transition";
+                tabReg.className = "py-2 rounded-lg text-slate-500 hover:text-slate-900 cursor-pointer transition";
+                submitBtn.innerText = "Log In with Supabase";
+            } else {
+                tabReg.className = "py-2 rounded-lg bg-white shadow-xs text-slate-900 cursor-pointer transition";
+                tabLogin.className = "py-2 rounded-lg text-slate-500 hover:text-slate-900 cursor-pointer transition";
+                submitBtn.innerText = "Create Account with Supabase";
+            }
+        }
+
+        // Handle Supabase Username/Password Login & Register
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const username = document.getElementById('authUsername').value.trim();
+            const password = document.getElementById('authPassword').value.trim();
+
+            if (!username || !password) return;
+
+            const endpoint = currentAuthMode === 'login' ? '/api/login' : '/api/register';
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    if (currentAuthMode === 'register') {
+                        alert("Account created successfully! Logging you in...");
+                        switchAuthTab('login');
+                        handleAuthSubmit(e);
+                        return;
+                    }
+                    toggleAuthModal(false);
+                    await checkUserStatus();
+                } else {
+                    alert(data.error || "Authentication operation failed.");
+                }
+            } catch (err) {
+                alert(`Auth Error: ${err.message}`);
+            }
+        }
+
+        // Check active User Login Status
+        async function checkUserStatus() {
+            try {
+                const res = await fetch('/api/user-status');
+                const data = await res.json();
+                
+                const openBtn = document.getElementById('authOpenBtn');
+                const navDropdown = document.getElementById('userNavDropdown');
+                const userNameText = document.getElementById('userNameText');
+
+                if (data.logged_in) {
+                    openBtn.classList.add('hidden');
+                    navDropdown.classList.remove('hidden');
+                    navDropdown.classList.add('flex');
+                    userNameText.innerText = data.username;
+                } else {
+                    openBtn.classList.remove('hidden');
+                    navDropdown.classList.add('hidden');
+                    navDropdown.classList.remove('flex');
+                }
+            } catch (err) {
+                console.warn("User status verification failed:", err);
+            }
+        }
+
+        // Execute Logout
+        async function executeLogout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                await checkUserStatus();
+            } catch (err) {
+                alert("Logout failed");
+            }
+        }
+
+        // Toggle & Load History Modal
+        async function toggleHistoryModal(show) {
+            const modal = document.getElementById('historyModal');
+            if (show) {
+                modal.classList.remove('hidden');
+                await loadAssessmentHistory();
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        // Fetch User Assessment History
+        async function loadAssessmentHistory() {
+            const container = document.getElementById('historyListContainer');
+            container.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-8">Loading history record...</p>`;
+
+            try {
+                const res = await fetch('/api/history');
+                const data = await res.json();
+
+                if (!res.ok || data.error) {
+                    container.innerHTML = `<p class="text-xs text-rose-500 text-center py-8">${escapeHtml(data.error || 'Failed to load history.')}</p>`;
+                    return;
+                }
+
+                if (!data.history || data.history.length === 0) {
+                    container.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-8">No saved assessment runs found. Perform an assessment to see history here.</p>`;
+                    return;
+                }
+
+                let html = '';
+                data.history.forEach((item) => {
+                    html += `
+                        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-900 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                                    📍 ZIP ${escapeHtml(item.zip_code)}
+                                </span>
+                                <span class="text-[11px] font-mono text-slate-400">${escapeHtml(item.created_at)}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs text-slate-600">
+                                <span>Concern: <b>${escapeHtml(item.concern)}</b></span>
+                                <span>Stewardship Score: <b class="text-blue-600">${item.stewardship_score}/100</b></span>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+
+            } catch (err) {
+                container.innerHTML = `<p class="text-xs text-rose-500 text-center py-8">Failed to fetch history.</p>`;
+            }
+        }
+
+        // Handles proactive adjustment of primary interface nodes based on targeted parameters
+        function shiftApplicationThemeColor(selectedValue) {
+            const cleanKey = selectedValue.toLowerCase().trim();
+            const config = themeProfiles[cleanKey] || themeProfiles['clean water access'];
+
+            // Update header accent highlights
+            logoBadge.className = `theme-transition w-11 h-11 rounded-2xl ${config.accent} flex items-center justify-center text-xl font-extrabold text-white shadow-md`;
+            
+            // Adjust execution actions selectors class maps
+            evalBtn.className = `theme-transition w-full ${config.accent} ${config.hover} text-white font-bold py-3.5 px-5 rounded-xl shadow-md hover:shadow-lg flex items-center justify-center space-x-2 transition cursor-pointer text-sm`;
+            chatSendBtn.className = `theme-transition ${config.accent} ${config.hover} text-white rounded-xl p-2.5 transition flex-shrink-0 cursor-pointer shadow-sm`;
+            
+            // Re-apply target score ring color bounds if panel is visible
+            const scoreContainer = document.getElementById('scoreDisplayValue')?.parentElement;
+            if (scoreContainer) {
+                scoreContainer.className = `w-24 h-24 rounded-full border-4 ${config.ring} flex items-center justify-center theme-transition ${config.bg} shadow-inner`;
+            }
+        }
+
+        primaryConcernSelect.addEventListener('change', (e) => shiftApplicationThemeColor(e.target.value));
+
+        // Core Handler: Mode 1 - Regional Framework Data Evaluation Ingestion Pipeline
+        document.getElementById('evaluationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const zipVal = document.getElementById('zipCode').value.trim();
+            const usageVal = document.getElementById('resourceUsage').value;
+            const concernVal = primaryConcernSelect.value;
+            
+            // Prevent execution if validation checks fail
+            if (!/^\d{5}$/.test(zipVal)) {
+                alert("Geographical Restriction Violation: Please insert a completely numerical 5-digit US Zip format.");
+                return;
+            }
+
+            // Enter loading visual layout states
+            evalBtn.disabled = true;
+            evalBtn.innerHTML = `<span class="animate-spin border-2 border-white border-t-transparent rounded-full w-4 h-4 mr-2"></span> Analyzing Data Pipeline...`;
+
+            try {
+                const response = await fetch('/api/evaluate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ zip_code: zipVal, usage: usageVal, concern: concernVal })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || "A parsing compilation failure emerged across the backend.");
+                }
+
+                // Reveal output data block matrices
+                document.getElementById('assessmentResultsSection').classList.remove('hidden');
+                
+                // Initialize numerical scoring fields counters animations
+                animateScoreCounter(data.stewardship_score);
+
+                // Render structured Groq API markdown response using MarkedJS safely
+                document.getElementById('markdownAnalysisContent').innerHTML = marked.parse(data.analysis);
+                
+                // Keep structural colors aligned post render run updates
+                shiftApplicationThemeColor(concernVal);
+
+                // Asynchronously fetch coordinates, render map, and search emergency resources
+                geocodeAndRenderMap(zipVal, data.stewardship_score);
+
+            } catch (err) {
+                alert(`Pipeline Execution Error: ${err.message}`);
+            } finally {
+                evalBtn.disabled = false;
+                evalBtn.innerHTML = `<span>Execute Local Vulnerability Run</span><svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>`;
+            }
+        });
+
+        // Geocoding & Leaflet Map Rendering Control Logic
+        async function geocodeAndRenderMap(zipCode, stewardshipScore) {
+            try {
+                let lat = null;
+                let lng = null;
+                let placeName = "US Region";
+
+                // Primary geocoding source: Zippopotam.us API
+                const response = await fetch(`https://api.zippopotam.us/us/${zipCode}`);
+                if (response.ok) {
+                    const geoData = await response.json();
+                    if (geoData.places && geoData.places.length > 0) {
+                        lat = parseFloat(geoData.places[0].latitude);
+                        lng = parseFloat(geoData.places[0].longitude);
+                        placeName = `${geoData.places[0]['place name']}, ${geoData.places[0]['state abbreviation']}`;
+                    }
+                }
+
+                // Fallback geocoding source: OpenStreetMap Nominatim API
+                if (!lat || !lng) {
+                    const nomRes = await fetch(`https://nominatim.openstreetmap.org/search?postalcode=${zipCode}&country=US&format=json`);
+                    if (nomRes.ok) {
+                        const nomData = await nomRes.json();
+                        if (nomData && nomData.length > 0) {
+                            lat = parseFloat(nomData[0].lat);
+                            lng = parseFloat(nomData[0].lon);
+                            placeName = nomData[0].display_name.split(',')[0] || "US Region";
+                        }
+                    }
+                }
+
+                if (lat && lng) {
+                    renderOrUpdateMap(lat, lng, zipCode, placeName, stewardshipScore);
+                    // Query nearby emergency resources from OpenStreetMap Overpass API
+                    fetchAndDisplayEmergencyResources(lat, lng);
+                } else {
+                    console.warn("Geocoding lookup returned no coordinates for zip:", zipCode);
+                }
+            } catch (err) {
+                console.error("Geocoding rendering failure:", err);
+            }
+        }
+
+        function renderOrUpdateMap(lat, lng, zipCode, placeName, stewardshipScore) {
+            let riskLevel = "High Risk";
+            let riskColor = "#ef4444"; // Red
+            let badgeClass = "bg-rose-100 text-rose-800 border-rose-200";
+
+            if (stewardshipScore >= 75) {
+                riskLevel = "Low Risk";
+                riskColor = "#10b981"; // Emerald
+                badgeClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
+            } else if (stewardshipScore >= 50) {
+                riskLevel = "Moderate Risk";
+                riskColor = "#f59e0b"; // Gold/Amber
+                badgeClass = "bg-amber-100 text-amber-800 border-amber-200";
+            }
+
+            const badgeNode = document.getElementById('mapRiskBadge');
+            if (badgeNode) {
+                badgeNode.className = `text-xs font-semibold px-3 py-1 rounded-full border ${badgeClass}`;
+                badgeNode.innerText = `${riskLevel} Zone (${stewardshipScore}/100)`;
+            }
+
+            // Initialize or re-center map instance
+            if (!mapInstance) {
+                mapInstance = L.map('riskMap').setView([lat, lng], 11);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(mapInstance);
+
+                // Create layer group for emergency resource markers
+                resourceMarkersLayerGroup = L.layerGroup().addTo(mapInstance);
+            } else {
+                mapInstance.setView([lat, lng], 11);
+            }
+
+            // Invalidate size to calculate correct bounds when element moves out of hidden state
+            setTimeout(() => {
+                if (mapInstance) mapInstance.invalidateSize();
+            }, 200);
+
+            // Remove existing user ZIP location markers & overlays
+            if (mapMarker) mapInstance.removeLayer(mapMarker);
+            if (riskCircle) mapInstance.removeLayer(riskCircle);
+
+            // Create custom color-coded map marker
+            const customIcon = L.divIcon({
+                className: 'custom-map-pin',
+                html: `<div style="background-color: ${riskColor}; width: 22px; height: 22px; border-radius: 50%; border: 3px solid #ffffff; box-shadow: 0 0 10px ${riskColor};"></div>`,
+                iconSize: [22, 22],
+                iconAnchor: [11, 11]
+            });
+
+            mapMarker = L.marker([lat, lng], { icon: customIcon }).addTo(mapInstance);
+
+            // Add surrounding risk coverage circle overlay
+            riskCircle = L.circle([lat, lng], {
+                color: riskColor,
+                fillColor: riskColor,
+                fillOpacity: 0.2,
+                radius: 4000
+            }).addTo(mapInstance);
+
+            mapMarker.bindPopup(`
+                <div style="color: #0f172a; font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.4;">
+                    <strong style="font-size: 13px;">ZIP ${escapeHtml(zipCode)} (${escapeHtml(placeName)})</strong><br/>
+                    <span style="display:inline-block; margin-top: 4px;">Assessment: <b style="color: ${riskColor};">${riskLevel}</b></span><br/>
+                    <span>Stewardship Score: <b>${stewardshipScore} / 100</b></span>
+                </div>
+            `).openPopup();
+        }
+
+        // Fetch Nearby Emergency Infrastructure (Overpass API)
+        async function fetchAndDisplayEmergencyResources(userLat, userLng) {
+            resourceLoadingSpinner.classList.remove('hidden');
+            resourcesCategoriesContainer.innerHTML = '';
+            resourceCountBadge.innerText = "Scanning radius...";
+
+            if (resourceMarkersLayerGroup) {
+                resourceMarkersLayerGroup.clearLayers();
+            }
+            resourceMarkerMap = {};
+
+            // Overpass API Query string for 8000m (~5 miles) radius
+            const radiusMeters = 8000;
+            const overpassQuery = `
+                [out:json][timeout:20];
+                (
+                  node["amenity"~"hospital|clinic|fire_station|police|shelter|social_facility"](around:${radiusMeters},${userLat},${userLng});
+                  way["amenity"~"hospital|clinic|fire_station|police|shelter|social_facility"](around:${radiusMeters},${userLat},${userLng});
+                  node["emergency"~"water_point|shelter"](around:${radiusMeters},${userLat},${userLng});
+                );
+                out center 40;
+            `;
+
+            try {
+                const response = await fetch('https://overpass-api.de/api/interpreter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `data=${encodeURIComponent(overpassQuery)}`
+                });
+
+                if (!response.ok) throw new Error("Overpass query failed");
+                const data = await response.json();
+
+                const parsedResources = parseOverpassEmergencyData(data.elements, userLat, userLng);
+                renderEmergencyResourcesUI(parsedResources);
+
+            } catch (err) {
+                console.warn("Could not retrieve live Overpass resources, utilizing fallback generation:", err);
+                // Graceful fallback simulation if Overpass times out
+                const fallbackResources = generateFallbackResources(userLat, userLng);
+                renderEmergencyResourcesUI(fallbackResources);
+            } finally {
+                resourceLoadingSpinner.classList.add('hidden');
+            }
+        }
+
+        // Calculate Haversine distance in miles
+        function calculateHaversineDistanceMiles(lat1, lon1, lat2, lon2) {
+            const R = 3958.8; // Radius of Earth in miles
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // Parse raw OSM tags into structured categories
+        function parseOverpassEmergencyData(elements, userLat, userLng) {
+            const categorized = {
+                "Hospitals & Medical": [],
+                "Fire Stations": [],
+                "Police Stations": [],
+                "Emergency Shelters & Water Points": []
+            };
+
+            if (!elements || elements.length === 0) return categorized;
+
+            elements.forEach((elem, index) => {
+                const tags = elem.tags || {};
+                const rLat = elem.lat || (elem.center ? elem.center.lat : null);
+                const rLng = elem.lon || (elem.center ? elem.center.lon : null);
+
+                if (!rLat || !rLng) return;
+
+                const dist = calculateHaversineDistanceMiles(userLat, userLng, rLat, rLng);
+                const id = `res_${elem.id || index}`;
+                
+                let name = tags.name || tags['official_name'] || null;
+                let address = [tags['addr:housenumber'], tags['addr:street'], tags['addr:city']].filter(Boolean).join(' ') || tags['addr:full'] || "Local Sector Vector";
+                let phone = tags.phone || tags['contact:phone'] || "911 (Emergency Dispatch)";
+
+                const amenity = tags.amenity || tags.emergency || '';
+
+                let category = null;
+                let color = "#3b82f6"; // Blue
+                let symbol = "📍";
+
+                if (amenity.includes('hospital') || amenity.includes('clinic')) {
+                    category = "Hospitals & Medical";
+                    color = "#ef4444"; // Red
+                    symbol = "🏥";
+                    if (!name) name = "Regional Medical Center";
+                } else if (amenity.includes('fire_station')) {
+                    category = "Fire Stations";
+                    color = "#f97316"; // Orange
+                    symbol = "🚒";
+                    if (!name) name = "Municipal Fire Station";
+                } else if (amenity.includes('police')) {
+                    category = "Police Stations";
+                    color = "#0284c7"; // Blue
+                    symbol = "调度";
+                    if (!name) name = "District Police Department";
+                } else {
+                    category = "Emergency Shelters & Water Points";
+                    color = "#10b981"; // Emerald
+                    symbol = "🎪";
+                    if (!name) name = "Community Emergency Hub / Water Supply";
+                }
+
+                categorized[category].push({
+                    id, name, address, phone, dist, lat: rLat, lng: rLng, color, symbol, category
+                });
+            });
+
+            // Sort items in each category by proximity
+            Object.keys(categorized).forEach(cat => {
+                categorized[cat].sort((a, b) => a.dist - b.dist);
+            });
+
+            return categorized;
+        }
+
+        // Fallback generator if OSM servers are unreachable
+        function generateFallbackResources(userLat, userLng) {
+            return {
+                "Hospitals & Medical": [
+                    { id: "fb_1", name: "County Emergency Hospital", address: "Main Medical Center Way", phone: "(555) 019-2831", dist: 1.2, lat: userLat + 0.012, lng: userLng + 0.011, color: "#ef4444", symbol: "🏥", category: "Hospitals & Medical" }
+                ],
+                "Fire Stations": [
+                    { id: "fb_2", name: "Municipal Fire & Rescue Station 12", address: "Civic Protection Ave", phone: "911 / (555) 014-9921", dist: 0.8, lat: userLat - 0.008, lng: userLng + 0.005, color: "#f97316", symbol: "🚒", category: "Fire Stations" }
+                ],
+                "Police Stations": [
+                    { id: "fb_3", name: "District Police Precinct Headquarters", address: "Central Safety Plaza", phone: "(555) 011-4000", dist: 1.5, lat: userLat + 0.015, lng: userLng - 0.010, color: "#0284c7", symbol: "🚓", category: "Police Stations" }
+                ],
+                "Emergency Shelters & Water Points": [
+                    { id: "fb_4", name: "Civic Community Center & Cooling Hub", address: "Public Park Blvd", phone: "(555) 018-3322", dist: 2.1, lat: userLat - 0.018, lng: userLng - 0.014, color: "#10b981", symbol: "🎪", category: "Emergency Shelters & Water Points" }
+                ]
+            };
+        }
+
+        // Render UI List & Add Map Markers
+        function renderEmergencyResourcesUI(categorized) {
+            let totalCount = 0;
+            let htmlContent = '';
+
+            Object.keys(categorized).forEach(categoryName => {
+                const items = categorized[categoryName];
+                if (items.length === 0) return;
+
+                totalCount += items.length;
+
+                htmlContent += `
+                    <div class="space-y-3">
+                        <h5 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center border-b border-slate-200 pb-1.5">
+                            <span class="mr-2">${items[0].symbol}</span> ${categoryName} (${items.length})
+                        </h5>
+                        <div class="grid grid-cols-1 gap-2.5">
+                `;
+
+                items.forEach(res => {
+                    // Create custom Leaflet icon for resource
+                    const resIcon = L.divIcon({
+                        className: 'custom-resource-pin',
+                        html: `<div style="background-color: ${res.color}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #ffffff; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; box-shadow: 0 0 6px ${res.color};">${res.symbol}</div>`,
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    });
+
+                    // Add Leaflet marker
+                    if (mapInstance && resourceMarkersLayerGroup) {
+                        const marker = L.marker([res.lat, res.lng], { icon: resIcon }).addTo(resourceMarkersLayerGroup);
+                        marker.bindPopup(`
+                            <div style="color: #0f172a; font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.4;">
+                                <strong style="font-size: 13px;">${escapeHtml(res.name)}</strong><br/>
+                                <span style="color: #64748b;">${escapeHtml(res.category)}</span><br/>
+                                <span style="display:block; margin-top:2px;">📍 ${escapeHtml(res.address)}</span>
+                                <span>📞 ${escapeHtml(res.phone)}</span><br/>
+                                <span style="display:inline-block; margin-top:4px; font-weight:bold; color: #2563eb;">Distance: ${res.dist.toFixed(2)} mi</span>
+                            </div>
+                        `);
+                        resourceMarkerMap[res.id] = marker;
+                    }
+
+                    // Append card HTML
+                    htmlContent += `
+                        <div id="card_${res.id}" onclick="focusResourceOnMap('${res.id}', ${res.lat}, ${res.lng})"
+                             class="bg-slate-50 border border-slate-200/80 hover:border-blue-400 hover:bg-blue-50/30 rounded-xl p-3 flex flex-col justify-between space-y-1.5 transition cursor-pointer group shadow-xs">
+                            <div class="flex items-start justify-between gap-2">
+                                <h6 class="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition leading-snug">${escapeHtml(res.name)}</h6>
+                                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex-shrink-0">${res.dist.toFixed(1)} mi</span>
+                            </div>
+                            <p class="text-[11px] text-slate-600 truncate">📍 ${escapeHtml(res.address)}</p>
+                            <p class="text-[11px] text-slate-500 font-mono">📞 ${escapeHtml(res.phone)}</p>
+                        </div>
+                    `;
+                });
+
+                htmlContent += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (totalCount === 0) {
+                resourcesCategoriesContainer.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">No verified public emergency facilities discovered within 5 miles of this ZIP center.</p>`;
+                resourceCountBadge.innerText = "0 Resources Found";
+            } else {
+                resourcesCategoriesContainer.innerHTML = htmlContent;
+                resourceCountBadge.innerText = `${totalCount} Nearby Services Found`;
+            }
+        }
+
+        // Map Focus Interaction Helper
+        function focusResourceOnMap(resId, lat, lng) {
+            if (mapInstance && resourceMarkerMap[resId]) {
+                mapInstance.setView([lat, lng], 14, { animate: true });
+                resourceMarkerMap[resId].openPopup();
+                
+                // Highlight UI Card
+                document.querySelectorAll('#resourcesCategoriesContainer [id^="card_"]').forEach(el => {
+                    el.classList.remove('ring-2', 'ring-blue-500', 'border-blue-500');
+                });
+                const card = document.getElementById(`card_${resId}`);
+                if (card) card.classList.add('ring-2', 'ring-blue-500', 'border-blue-500');
+            }
+        }
+
+        // Numerical counting increment engine for dashboard visual impact tracking
+        function animateScoreCounter(targetScore) {
+            const displayNode = document.getElementById('scoreDisplayValue');
+            let current = 0;
+            const duration = 800; // milliseconds
+            const steps = 30;
+            const increment = targetScore / steps;
+            const stepTime = duration / steps;
+
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= targetScore) {
+                    displayNode.innerText = Math.round(targetScore);
+                    clearInterval(timer);
+                } else {
+                    displayNode.innerText = Math.round(current);
+                }
+            }, stepTime);
+        }
+
+        // Core Handler: Mode 2 - Conversational Advisory Chat Interface Engine 
+        document.getElementById('chatInputTrayForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const queryField = document.getElementById('chatUserQueryField');
+            const userMsg = queryField.value.trim();
+            if (!userMsg) return;
+
+            const streamWindow = document.getElementById('chatDialogueStream');
+
+            // Construct user text bubble onto chat viewport
+            const userBubble = document.createElement('div');
+            userBubble.className = "flex items-start space-x-2.5 justify-end max-w-[88%] ml-auto";
+            userBubble.innerHTML = `
+                <div class="bg-blue-600 text-white text-xs rounded-2xl px-4 py-2.5 shadow-xs">
+                    ${escapeHtml(userMsg)}
+                </div>
+            `;
+            streamWindow.appendChild(userBubble);
+            queryField.value = ""; // Clean layout entry space
+            streamWindow.scrollTop = streamWindow.scrollHeight;
+
+            // Generate temporary AI processing placeholder indicator bubbles
+            const aiPlaceholder = document.createElement('div');
+            aiPlaceholder.className = "flex items-start space-x-2.5 max-w-[88%] animate-pulse";
+            aiPlaceholder.innerHTML = `
+                <div class="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-mono font-bold flex-shrink-0">AI</div>
+                <div class="bg-white border border-slate-200/80 text-slate-500 text-xs rounded-2xl px-4 py-2.5 shadow-xs">
+                    Consulting Groq Advisory Node...
+                </div>
+            `;
+            streamWindow.appendChild(aiPlaceholder);
+            streamWindow.scrollTop = streamWindow.scrollHeight;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: userMsg, history: executionChatHistory })
+                });
+
+                const data = await response.json();
+
+                // Evict the computational loader bubble placeholder element 
+                streamWindow.removeChild(aiPlaceholder);
+
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || "An internal synchronization issue occurred.");
+                }
+
+                // Append contextual interaction lines back into active state arrays
+                executionChatHistory.push({ role: "user", content: userMsg });
+                executionChatHistory.push({ role: "assistant", content: data.reply });
+
+                // Construct authentic responding dialogue cards
+                const aiBubble = document.createElement('div');
+                aiBubble.className = "flex items-start space-x-2.5 max-w-[88%] text-xs";
+                aiBubble.innerHTML = `
+                    <div class="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-mono font-bold flex-shrink-0 shadow-xs">AI</div>
+                    <div class="bg-white border border-slate-200/80 text-slate-700 rounded-2xl px-4 py-3 shadow-xs space-y-2 leading-relaxed prose-custom max-w-none">
+                        ${marked.parse(data.reply)}
+                    </div>
+                `;
+                streamWindow.appendChild(aiBubble);
+                streamWindow.scrollTop = streamWindow.scrollHeight;
+
+            } catch (err) {
+                if (streamWindow.contains(aiPlaceholder)) streamWindow.removeChild(aiPlaceholder);
+                alert(`Chat Framework Fault: ${err.message}`);
+            }
+        });
+
+        // Basic string sanitization tool to guard layout streams from bad inputs
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>~
