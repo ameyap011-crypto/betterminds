@@ -22,7 +22,7 @@ template_dir = os.path.join(base_dir, '..', 'templates')
 app = Flask(__name__, template_folder=template_dir)
 
 # Set application session key configuration securely
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "sentinelai-secret-key-2026")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "safesphere-secret-key-2026")
 
 # API & Auth Credentials
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
@@ -61,30 +61,34 @@ def validate_us_zip(zip_code):
     return bool(re.match(r"^\d{5}$", str(zip_code).strip()))
 
 
-def calculate_stewardship_score(usage, concern):
+def calculate_safety_score(density, hazard):
     """
-    Calculates a baseline mathematical Eco-Stewardship Score (out of 100)
-    to transform abstract user habits into an engaging personal indicator.
+    Calculates a baseline mathematical Community Safety Score (out of 100,
+    higher = safer) from reported area density and primary hazard concern,
+    to give users an engaging, immediate personal risk indicator.
+
+    NOTE: the `density` parameter is persisted under the legacy
+    'usage_level' column name in Supabase to avoid a schema migration.
     """
     base_score = 100
 
-    usage_normalized = usage.lower().strip()
-    if usage_normalized == 'high':
-        base_score -= 40
-    elif usage_normalized == 'moderate':
-        base_score -= 20
-    elif usage_normalized == 'low':
-        base_score -= 5
+    density_normalized = density.lower().strip()
+    if density_normalized == 'urban':
+        base_score -= 25
+    elif density_normalized == 'suburban':
+        base_score -= 12
+    elif density_normalized == 'rural':
+        base_score -= 18  # slower emergency response times in remote areas
 
-    concern_normalized = concern.lower().strip()
-    concern_penalties = {
-        'drought': 15,
-        'heatwaves': 10,
-        'clean water access': 20,
-        'severe weather': 10
+    hazard_normalized = hazard.lower().strip()
+    hazard_penalties = {
+        'crime': 20,
+        'fire': 15,
+        'storm & flooding': 15,
+        'severe winter weather': 10
     }
 
-    penalty = concern_penalties.get(concern_normalized, 5)
+    penalty = hazard_penalties.get(hazard_normalized, 8)
     final_score = max(10, base_score - penalty)
     return final_score
 
@@ -120,7 +124,7 @@ def register():
     if not username or not password:
         return jsonify({"error": "Username and password are required parameters."}), 400
 
-    email = username if "@" in username else f"{username}@sentinelai.app"
+    email = username if "@" in username else f"{username}@safesphere.app"
 
     try:
         res = supabase_client.auth.sign_up({
@@ -151,7 +155,7 @@ def login():
     if not username or not password:
         return jsonify({"error": "Username and password are required parameters."}), 400
 
-    email = username if "@" in username else f"{username}@sentinelai.app"
+    email = username if "@" in username else f"{username}@safesphere.app"
 
     try:
         res = supabase_client.auth.sign_in_with_password({
@@ -252,9 +256,9 @@ def get_history():
         history_list = [
             {
                 "zip_code": row["zip_code"],
-                "usage": row["usage_level"],
-                "concern": row["concern"],
-                "stewardship_score": row["stewardship_score"],
+                "density": row["usage_level"],
+                "hazard": row["concern"],
+                "safety_score": row["stewardship_score"],
                 "analysis": row["analysis"],
                 "created_at": row["created_at"]
             }
@@ -268,41 +272,42 @@ def get_history():
 @app.route('/api/evaluate', methods=['POST'])
 def evaluate_region():
     """
-    Mode 1: Regional Profile & Threat Evaluator
-    Ingests local metrics, runs US spatial validation, calculates the environmental
-    impact score, and hits Groq for an educational resource assessment.
+    Mode 1: Risk Assessment Module
+    Ingests local metrics, runs US spatial validation, calculates a community safety score,
+    and returns a structured AI risk evaluation analyzing local hazard and safety conditions.
     """
     if not client:
         return jsonify({"error": "Groq API token configuration is missing on the server environment."}), 500
 
     data = request.get_json() or {}
     zip_code = data.get('zip_code', '').strip()
-    usage = data.get('usage', '').strip()
-    concern = data.get('concern', '').strip()
+    density = data.get('usage', '').strip()
+    hazard = data.get('concern', '').strip()
 
     if not zip_code or not validate_us_zip(zip_code):
         return jsonify({"error": "Invalid location context. Please provide a valid 5-digit US Zip Code."}), 400
 
-    if not usage or not concern:
-        return jsonify({"error": "Missing essential parameters. Usage level and primary concern are required."}), 400
+    if not density or not hazard:
+        return jsonify({"error": "Missing essential parameters. Area density and primary hazard are required."}), 400
 
-    stewardship_score = calculate_stewardship_score(usage, concern)
+    safety_score = calculate_safety_score(density, hazard)
 
     system_instruction = (
-        "You are SentinelAI, an expert humanitarian environmental analysis engine tailored for the US environment. "
-        "Your goal is to provide educational regional risk assessments and neighborhood conservation tips. "
-        "Align assessments with standard safety framings inspired by FEMA and EPA advisory frameworks. "
+        "You are SafeSphere, an expert safety & emergency risk analysis engine tailored for the US. "
+        "Your goal is to provide a comprehensive Risk Assessment analyzing local hazard exposure, "
+        "neighborhood safety vulnerabilities, and practical protective measures. "
+        "Align assessments with standard safety framings inspired by FEMA and American Red Cross advisory frameworks. "
         "Structure your response elegantly using clear Markdown headers, bold accents, and distinct spacing."
     )
 
     user_query = (
-        f"Analyze this US regional sustainability snapshot and compile a community profile:\n"
+        f"Analyze this US regional hazard snapshot and compile a community safety profile:\n"
         f"- Target US Zip Code Region: {zip_code}\n"
-        f"- Reported Household Resource Footprint: {usage}\n"
-        f"- Target Local Safety & Resource Crisis Parameter: {concern}\n\n"
+        f"- Area & Population Density: {density}\n"
+        f"- Primary Hazard Concern: {hazard}\n\n"
         f"Output structural guidelines addressing:\n"
-        f"1. A localized 'Regional Resource Assessment' linking resource usage habits to regional environmental limits.\n"
-        f"2. Explicit 'Contextual Safety Alerts' highlighting common indicators of resource vulnerability.\n"
+        f"1. A localized 'Regional Risk Assessment' analyzing hazard exposure and safety vulnerabilities.\n"
+        f"2. Explicit 'Contextual Safety Alerts' highlighting common risk indicators and warning signs.\n"
         f"3. Three actionable, step-by-step community-level mitigation ideas for disaster resilience."
     )
 
@@ -319,15 +324,17 @@ def evaluate_region():
 
         analysis_payload = completion.choices[0].message.content
 
-        # Save evaluation to Supabase assessment history if user session is active
+        # Save evaluation to Supabase assessment history if user session is active.
+        # NOTE: density/hazard/safety_score are persisted under the legacy
+        # usage_level/concern/stewardship_score column names to avoid a schema migration.
         if 'user_id' in session and supabase_required():
             try:
                 supabase_client.table('assessments').insert({
                     "user_id": session['user_id'],
                     "zip_code": zip_code,
-                    "usage_level": usage,
-                    "concern": concern,
-                    "stewardship_score": stewardship_score,
+                    "usage_level": density,
+                    "concern": hazard,
+                    "stewardship_score": safety_score,
                     "analysis": analysis_payload,
                     "created_at": datetime.utcnow().isoformat()
                 }).execute()
@@ -336,7 +343,7 @@ def evaluate_region():
 
         return jsonify({
             "success": True,
-            "stewardship_score": stewardship_score,
+            "safety_score": safety_score,
             "analysis": analysis_payload
         })
 
@@ -347,7 +354,7 @@ def evaluate_region():
 @app.route('/api/chat', methods=['POST'])
 def chat_advisory():
     """
-    Mode 2: Eco-Safety Advisory Chat Hub
+    Mode 2: Safety Advisory Chat Hub
     """
     if not client:
         return jsonify({"error": "Groq API token configuration is missing on the server environment."}), 500
@@ -360,8 +367,8 @@ def chat_advisory():
         return jsonify({"error": "Chat message context cannot be blank."}), 400
 
     system_instruction = (
-        "You are the SentinelAI Eco-Safety Advisory Chat Hub. You act as an interactive neighborhood safety monitor. "
-        "Provide immediate, step-by-step micro-level resource saving and family preparation strategies. "
+        "You are the SafeSphere Safety Advisory Chat Hub. You act as an interactive personal safety advisor. "
+        "Provide immediate, step-by-step home safety, personal safety, and disaster preparedness guidance. "
         "Ensure all guidance assumes a US municipal context (e.g., standard American Red Cross emergency kits). "
         "Keep replies highly operational, punchy, concise, and structured with clean bullet points."
     )
@@ -397,6 +404,7 @@ def chat_advisory():
 def emergency_assistance():
     """
     Mode 3: AI Emergency Assistance
+    Analyzes natural language descriptions of emergency situations and provides structured guidance.
     """
     if not client:
         return jsonify({"error": "Groq API token configuration is missing on the server environment."}), 500
@@ -408,7 +416,7 @@ def emergency_assistance():
         return jsonify({"error": "Emergency situation description is required."}), 400
 
     system_instruction = (
-        "You are SentinelAI Emergency Assistant, an AI first-response and safety guidance coordinator. "
+        "You are SafeSphere Emergency Assistant, an AI first-response and safety guidance coordinator. "
         "Your objective is to analyze natural language descriptions of emergencies or dangerous situations "
         "and provide immediate, highly structured, clear guidance prioritizing life safety.\n\n"
         "REQUIRED STRUCTURE & CONTENT:\n"
@@ -451,6 +459,123 @@ def emergency_assistance():
 
     except Exception as e:
         return jsonify({"error": f"Emergency assistance engine hit an execution fault: {str(e)}"}), 500
+
+
+@app.route('/api/planner', methods=['POST'])
+def preparedness_planner():
+    """
+    Mode 4: Emergency Preparedness Planner
+    Generates customized emergency preparedness plans including supply checklists,
+    evacuation plans, communication plans, and pet preparedness recommendations.
+    """
+    if not client:
+        return jsonify({"error": "Groq API token configuration is missing on the server environment."}), 500
+
+    data = request.get_json() or {}
+    zip_code = data.get('zip_code', '').strip()
+    household_size = data.get('household_size', '1').strip()
+    has_pets = data.get('has_pets', False)
+    special_needs = data.get('special_needs', '').strip()
+    primary_hazards = data.get('primary_hazards', '').strip()
+
+    if not zip_code or not validate_us_zip(zip_code):
+        return jsonify({"error": "Valid 5-digit US Zip Code required for planner location context."}), 400
+
+    system_instruction = (
+        "You are SafeSphere Emergency Preparedness Planner, an expert disaster resilience coordinator. "
+        "Your goal is to generate tailored, actionable emergency preparedness plans based on household needs and local geographic context.\n\n"
+        "REQUIRED STRUCTURE:\n"
+        "1. ## Custom Emergency Supply Checklist\n"
+        "   - Detailed checklist of essential supply items, water/food quantities scaled to household size, first aid, power, hygiene, and tools.\n"
+        "2. ## Family Evacuation & Action Plan\n"
+        "   - Step-by-step evacuation protocols, primary and secondary exit routes, meeting locations, and hazard safety rules.\n"
+        "3. ## Family Communication Plan\n"
+        "   - Instructions for out-of-area emergency contacts, emergency signal methods, and local emergency alert subscription guidance.\n"
+        "4. ## Pet & Special Household Needs Protocols\n"
+        "   - Targeted recommendations for pet survival kits and evacuation, or medical/mobility/infant/elderly considerations if applicable.\n"
+        "5. ## Regional Hazard Mitigation Advice\n"
+        "   - Specific localized preparation advice tailored to the region and hazards specified.\n\n"
+        "SAFETY MANDATE:\n"
+        "Remind users that this plan provides structured preparation guidance aligned with standard emergency planning frameworks (FEMA/Red Cross) and should be reviewed regularly with household members."
+    )
+
+    user_query = (
+        f"Generate a customized Emergency Preparedness Plan for:\n"
+        f"- Location ZIP Code: {zip_code}\n"
+        f"- Household Size: {household_size} person(s)\n"
+        f"- Pet Accommodations Needed: {'Yes' if has_pets else 'No'}\n"
+        f"- Special Medical / Mobility / Family Needs: {special_needs if special_needs else 'None specified'}\n"
+        f"- Primary Hazard Focus: {primary_hazards if primary_hazards else 'General emergency preparedness'}"
+    )
+
+    try:
+        completion = client.chat.completions.create(
+            model=MODEL_EVALUATOR,
+            messages=[
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": user_query}
+            ],
+            temperature=0.3,
+            max_tokens=1000
+        )
+
+        plan_payload = completion.choices[0].message.content
+
+        return jsonify({
+            "success": True,
+            "plan": plan_payload
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"Preparedness planner engine hit an execution fault: {str(e)}"}), 500
+
+
+@app.route('/api/knowledge', methods=['POST'])
+def safety_knowledge():
+    """
+    Mode 5: Safety Knowledge Center
+    AI-powered educational Q&A resource for first aid, disaster prep, severe weather, home safety, and outdoor safety.
+    """
+    if not client:
+        return jsonify({"error": "Groq API token configuration is missing on the server environment."}), 500
+
+    data = request.get_json() or {}
+    question = data.get('question', '').strip()
+    category = data.get('category', 'General Safety').strip()
+
+    if not question:
+        return jsonify({"error": "Question context cannot be blank."}), 400
+
+    system_instruction = (
+        "You are the SafeSphere Safety Knowledge Center, an authoritative, accessible educational AI resource for emergency preparedness, first aid, disaster response, severe weather, home safety, and outdoor safety.\n\n"
+        "REQUIRED GUIDELINES:\n"
+        "- Provide clear, reliable, easy-to-understand explanations and practical safety advice.\n"
+        "- Structure responses with clean Markdown formatting, bold headings, bullet points, and actionable tips.\n"
+        "- State clearly that information is for educational purposes and is not a substitute for professional emergency services or medical personnel."
+    )
+
+    user_query = f"Category: {category}\nQuestion: {question}"
+
+    try:
+        completion = client.chat.completions.create(
+            model=MODEL_CHAT,
+            messages=[
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": user_query}
+            ],
+            temperature=0.4,
+            max_tokens=800
+        )
+
+        answer_payload = completion.choices[0].message.content
+
+        return jsonify({
+            "success": True,
+            "answer": answer_payload
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"Safety knowledge engine hit an execution fault: {str(e)}"}), 500
 
 
 @app.errorhandler(404)
